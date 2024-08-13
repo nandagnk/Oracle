@@ -1,0 +1,80 @@
+---Simple JSON
+
+select json_object( key 'Username' value 'Nanda.Govindan',
+                    key 'email' value '430020083@itsmyhome.net.au',
+                    key 'StaffID' value 430020083
+                   )
+  from dual;
+
+--JSON Array  
+
+select json_object( key 'Username' value 'Nanda.Govindan',
+                    key 'email' value '430020083@itsmyhome.net.au',
+                    key 'StaffID' value 430020083,
+                    key 'Skills' value json_array( 'Oracle', 'MSSQL', 'MySQL', 'Snowflake' )
+                   )
+  from dual;
+
+--Nested JSON
+
+select json_object
+       (
+           key 'Username' value 'Nanda.Govindan',
+           key 'email' value '430020083@itsmyhome.net.au',
+           key 'StaffID' value 430020083,
+           key 'Skills' value json_array( 'Oracle', 'MSSQL', 'MySQL', 'Snowflake' ),
+           key 'Experience' value
+               json_object( key 'Oracle' value 18,
+                            key 'MSSQL' value 5,
+                            key 'MySQL' value 3,
+                            key 'Snowflake' value 1
+                           )
+       )
+  from dual;
+
+--converting a table data into a JSON document.
+
+select * from emp;
+
+select json_object( key 'empid' value empno,
+                    key 'name' value ename,
+                    key 'doj' value hiredate,
+                    key 'designation' value job,
+                    key 'salary' value round( sal, 2 ),
+                    key 'commission' value round( nvl( comm, 0 ), 2 ),
+                    key 'deptno' value deptno
+                   )
+  from emp;
+
+select json_object( key 'empid' value empno,
+                    key 'name' value ename,
+                    key 'doj' value hiredate,
+                    key 'designation' value job,
+                    key 'ctc' value round( ((nvl( sal, 0 ) + nvl( comm, 0 )) * 12), 2 ),
+                    key 'deptno' value deptno
+                   )
+  from emp;
+
+select json_object( * ) from emp;
+
+select json_object( * ) from dept;
+
+  select json_object
+         (
+             'deptno' value d.deptno,
+             'location' value loc,
+             'employee_info' value
+                 ( select json_arrayagg
+                          (
+                              json_object( key 'empid' value empno,
+                                           key 'name' value ename,
+                                           key 'doj' value hiredate,
+                                           key 'designation' value job,
+                                           key 'ctc' value round( ((nvl( sal, 0 ) + nvl( comm, 0 )) * 12), 2 )
+                                          )
+                          )
+                     from emp e
+                    where e.deptno = d.deptno )
+         )
+    from dept d
+order by d.deptno;

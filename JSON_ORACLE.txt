@@ -1,0 +1,1844 @@
+SELECT json_object('name' VALUE first_name || ' ' || last_name,
+                   'hasCommission' VALUE
+                     CASE WHEN commission_pct IS NULL THEN 'false' ELSE 'true'
+                     END FORMAT JSON)
+  FROM employees WHERE first_name LIKE 'W%';
+
+JSON_OBJECT('NAME'ISFIRST_NAME||''||LAST_NAME,'
+-----------------------------------------------
+{"name":"William Gietz","hasCommission":false}
+{"name":"William Smith","hasCommission":true}
+{"name":"Winston Taylor","hasCommission":false}
+
+
+SELECT json_object('id'          VALUE employee_id,
+                   'name'        VALUE first_name || ' ' || last_name,
+                   'hireDate'    VALUE hire_date,
+                   'pay'         VALUE salary,
+                   'contactInfo' VALUE json_object('mail'  VALUE email,
+                                                   'phone' VALUE phone_number)
+                                       FORMAT JSON) 
+  FROM employees
+  WHERE salary > 15000;
+
+-- The query returns rows such as this (pretty-printed here for clarity):
+
+{"id":101,
+ "name":"Neena Kochhar",
+ "hireDate":"21-SEP-05",
+ "pay":17000,
+ "contactInfo":{"mail":"NKOCHHAR",
+                "phone":"515.123.4568"}}
+				
+SELECT JSON_OBJECT('city'     VALUE city,
+                   'province' VALUE state_province ABSENT ON NULL) 
+  FROM locations
+  WHERE city LIKE 'S%';
+
+JSON_OBJECT('CITY'ISCITY,'PROVINCE'ISSTATE_PROVINCEABSENTONNULL)
+----------------------------------------------------------------
+{"city":"Southlake","province":"Texas"}
+{"city":"South San Francisco","province":"California"}
+{"city":"South Brunswick","province":"New Jersey"}
+{"city":"Seattle","province":"Washington"}
+{"city":"Sydney","province":"New South Wales"}
+{"city":"Singapore"}
+{"city":"Stretford","province":"Manchester"}
+{"city":"Sao Paulo","province":"Sao Paulo"}
+
+
+SELECT json_object('title'       VALUE job_title, 
+                   'salaryRange' VALUE json_array(min_salary, max_salary))
+  FROM jobs;
+
+JSON_OBJECT('TITLE'ISJOB_TITLE,'SALARYRANGE'ISJSON_ARRAY(MIN_SALARY,MAX_SALARY))
+--------------------------------------------------------------------------------
+{"title":"President","salaryRange":[20080,40000]}
+{"title":"Administration Vice President","salaryRange":[15000,30000]}
+{"title":"Administration Assistant","salaryRange":[3000,6000]}
+{"title":"Finance Manager","salaryRange":[8200,16000]}
+{"title":"Accountant","salaryRange":[4200,9000]}
+{"title":"Accounting Manager","salaryRange":[8200,16000]}
+{"title":"Public Accountant","salaryRange":[4200,9000]}
+{"title":"Sales Manager","salaryRange":[10000,20080]}
+{"title":"Sales Representative","salaryRange":[6000,12008]}
+{"title":"Purchasing Manager","salaryRange":[8000,15000]}
+{"title":"Purchasing Clerk","salaryRange":[2500,5500]}
+{"title":"Stock Manager","salaryRange":[5500,8500]}
+{"title":"Stock Clerk","salaryRange":[2008,5000]}
+{"title":"Shipping Clerk","salaryRange":[2500,5500]}
+{"title":"Programmer","salaryRange":[4000,10000]}
+{"title":"Marketing Manager","salaryRange":[9000,15000]}
+{"title":"Marketing Representative","salaryRange":[4000,9000]}
+{"title":"Human Resources Representative","salaryRange":[4000,9000]}
+{"title":"Public Relations Representative","salaryRange":[4500,10500]}
+
+
+SELECT json_objectagg(department_name VALUE department_id) FROM departments;
+
+-- The returned object is pretty-printed here for clarity.
+-- The order of the object members is arbitrary.
+
+JSON_OBJECTAGG(DEPARTMENT_NAMEISDEPARTMENT_ID)
+----------------------------------------------
+{"Administration":        10,
+ "Marketing":             20,
+ "Purchasing":            30,
+ "Human Resources":       40,
+ "Shipping":              50,
+ "IT":                    60,
+ "Public Relations":      70,
+ "Sales":                 80,
+ "Executive":             90,
+ "Finance":              100,
+ "Accounting":           110,
+ "Treasury":             120,
+ "Corporate Tax":        130,
+ "Control And Credit":   140,
+ "Shareholder Services": 150,
+ "Benefits":             160,
+ "Manufacturing":        170,
+ "Construction":         180,
+ "Contracting":          190,
+ "Operations":           200,
+ "IT Support":           210,
+ "NOC":                  220,
+ "IT Helpdesk":          230,
+ "Government Sales":     240,
+ "Retail Sales":         250,
+ "Recruiting":           260,
+ "Payroll":              270}
+
+
+
+
+SELECT json_object('id'         VALUE mgr.employee_id, 
+                   'manager'    VALUE (mgr.first_name || ' '|| mgr.last_name),
+                   'numReports' VALUE count(rpt.employee_id),
+                   'reports'    VALUE json_arrayagg(rpt.employee_id
+                                                    ORDER BY rpt.employee_id))
+  FROM  employees mgr, employees rpt
+  WHERE mgr.employee_id = rpt.manager_id
+  GROUP BY mgr.employee_id, mgr.last_name, mgr.first_name
+  HAVING count(rpt.employee_id) > 6;
+
+-- The returned object is pretty-printed here for clarity.
+
+JSON_OBJECT('ID'ISMGR.EMPLOYEE_ID,'MANAGER'VALUE(MGR.FIRST_NAME||''||MGR.LAST_NAME)
+--------------------------------------------------------------------------------
+{"id":         100,
+ "manager":    "Steven King",
+ "numReports": 14,
+ "reports":    [101,102,114,120,121,122,123,124,145,146,147,148,149,201]}
+
+{"id":         120,
+ "manager":    "Matthew Weiss",
+ "numReports": 8,
+ "reports":    [125,126,127,128,180,181,182,183]}
+
+{"id":         121,
+ "manager":    "Adam Fripp",
+ "numReports": 8,
+ "reports":    [129,130,131,132,184,185,186,187]}
+
+{"id":         122,
+ "manager":    "Payam Kaufling",
+ "numReports": 8,
+ "reports":    [133,134,135,136,188,189,190,191]}
+
+{"id":         123,
+ "manager":    "Shanta Vollman",
+ "numReports": 8,
+ "reports":    [137,138,139,140,192,193,194,195]}
+
+{"id":         124,
+ "manager":    "Kevin Mourgos",
+ "numReports": 8,
+ "reports":    [141,142,143,144,196,197,198,199]}
+
+==========================================
+
+
+CREATE TABLE j_purchaseorder
+  (id          VARCHAR2 (32) NOT NULL PRIMARY KEY,
+   date_loaded TIMESTAMP (6) WITH TIME ZONE,
+   po_document VARCHAR2 (4000)
+   CONSTRAINT ensure_json CHECK (po_document IS JSON));
+   
+truncate table j_purchaseorder;
+  
+INSERT INTO j_purchaseorder
+  VALUES (SYS_GUID(),
+          to_date('30-DEC-2014'),
+          '{"PONumber"             : 1600,
+            "Reference"            : "ABULL-20140421",
+            "Requestor"            : "Alexis Bull",
+            "User"                 : "ABULL",
+            "CostCenter"           : "A50",
+            "ShippingInstructions" : {Type:"Glass",pickup:"Denmark",Drop:"JFK",Instructions:"Handle with care",phone:405891583},
+            "Special Instructions" : null,
+            "AllowPartialShipment" : true,
+            "LineItems"            : ["Medicines","SmartPhones","Laptops","Mouse","KeyBoard","Monitors"]}');
+            
+SELECT po_document FROM j_purchaseorder po;
+
+SELECT po.po_document.ShippingInstructions.phone FROM j_purchaseorder po;
+
+SELECT po.po_document.LineItems FROM j_purchaseorder po;
+
+SELECT po.po_document.LineItems[1] FROM j_purchaseorder po;
+
+INSERT INTO j_purchaseorder
+  VALUES (SYS_GUID(),
+          to_date('30-DEC-2014'),
+'{ "PONumber"             : 1601,
+  "Reference"            : "ABULL-20140421",
+  "Requestor"            : "Alexis Bull",
+  "User"                 : "ABULL",
+  "CostCenter"           : "A50",
+  "ShippingInstructions" : { "name"   : "Alexis Bull",
+                             "Address": { "street"  : "200 Sporting Green",
+                                          "city"    : "South San Francisco",
+                                          "state"   : "CA",
+                                          "zipCode" : 99236,
+                                          "country" : "United States of America" },
+                             "Phone" : [ { "type" : "Office", "number" : "909-555-7307" },
+                                         { "type" : "Mobile", "number" : "415-555-1234" } ] },
+  "Special Instructions" : null,
+  "AllowPartialShipment" : false,
+  "LineItems"            : [ { "ItemNumber" : 1,
+                               "Part"       : { "Description" : "One Magic Christmas",
+                                                "UnitPrice"   : 19.95,
+                                                "UPCCode"     : 13131092899 },
+                               "Quantity"   : 9.0 },
+                             { "ItemNumber" : 2,
+                               "Part"       : { "Description" : "Lethal Weapon",
+                                                "UnitPrice"   : 19.95,
+                                                "UPCCode"     : 85391628927 },
+                               "Quantity"   : 5.0 } ] }'
+);
+
+
+SELECT po_document FROM j_purchaseorder po where po.po_document.PONumber=1601;
+
+INSERT INTO j_purchaseorder
+  VALUES (
+    SYS_GUID(),
+    to_date('30-DEC-2014'),
+    '{"PONumber"             : 672,
+      "Reference"            : "SBELL-20141017",
+      "Requestor"            : "Sarah Bell",
+      "User"                 : "SBELL",
+      "CostCenter"           : "A50",
+      "ShippingInstructions" : {"name"    : "Sarah Bell",
+                                "Address" : {"street"  : "200 Sporting Green",
+                                             "city"    : "South San Francisco",
+                                             "state"   : "CA",
+                                             "zipCode" : 99236,
+                                             "country" : "United States of America"},
+                                "Phone"   : "983-555-6509"},
+      "Special Instructions" : "Courier",
+      "LineItems"            : [{"ItemNumber" : 1,
+                                 "Part"       : {"Description" : "Making the Grade",
+                                                 "UnitPrice"   : 20,
+                                                 "UPCCode"     : 27616867759},
+                                 "Quantity"   : 8.0},
+                                {"ItemNumber" : 2,
+                                 "Part"       : {"Description" : "Nixon",
+                                                 "UnitPrice"   : 19.95,
+                                                 "UPCCode"     : 717951002396},
+                                 "Quantity"   : 5},
+                                {"ItemNumber" : 3,
+                                 "Part"       : {"Description" : "Eric Clapton: Best Of 1981-1999",
+                                                 "UnitPrice"   : 19.95,
+                                                 "UPCCode"     : 75993851120},
+                                 "Quantity"   : 5.0}
+                                ]}');
+                                
+                                
+SELECT po_document FROM j_purchaseorder po where po.po_document.PONumber=672;
+
+select * from emp;
+
+select * from dept;
+
+select json_object(*) from emp;
+
+  select json_object( 'deptno' value d.deptno,
+                      'detpname' value dname,
+                      'location' value loc,
+                      'empinfo' value json_arrayagg( json_object( 'id' value empno,
+                                                                  'name' value ename,
+                                                                  'designation' value job,
+                                                                  'doj' value hiredate,
+                                                                  'salary' value sal,
+                                                                  'commission' value comm
+                                                                 )
+                                                    )
+                      returning varchar2
+                     ) j
+    from dept d,
+         emp e
+   where d.deptno = e.deptno
+group by d.deptno, d.dname, d.loc;
+
+with lmi as 
+
+
+select json_object( 'ACI_ID' value lmi.ACI_ID,
+                    'lmi_info' value json_object(                    
+                    'Version' value lmi.SEQ_NO,
+                    'LMI_REF_NO' value lmi.LMI_REF_NO,
+                    'PROPOSAL_DATE' value lmi.PROPOSAL_DATE,
+                    'PROPOSAL_STATUS' value lmi.PROPOSAL_STATUS,
+                    'LENDING_PROGRAM' VALUE LPG.PROGRAM_NAME),
+                    'loan_components' value json_arrayagg( json_object( 'loan_limit' value loan_limit,
+                                                                  'loan_type' value loan_type,
+                                                                  'term' value term,
+                                                                  'purpose' value purpose,
+                                                                  'repay_type' value repay_type
+                                                                 )
+                                                    ),
+                    'Securities' value json_arrayagg( json_object( 'security_id' value sec_id,
+                                                                  'occupancy_type' value occupancy_type,
+                                                                  'security_type' value sec_type,
+                                                                  'val_program' value val_program,
+                                                                  'project_cost' value project_cost,
+                                                                  'purchase_price' value purchase_price,
+                                                                  'estimated_value' value est_value,
+                                                                  'primary_security_ind' value primary_security_ind
+                                                                 )
+                                                    )
+                      returning varchar2
+                     ) LMI_JSON                 
+from lmi_account_items lmi,
+     cst_lending_programs lpg,
+     lmi_loan_components llc,
+     lmi_securities ls
+where lmi.lpg_id = lpg.lpg_id
+and lmi.aci_id = llc.aci_id
+and lmi.aci_id = ls.aci_id
+and lmi.lmi_ref_no = 82265922
+group by lmi.aci_id,lmi.SEQ_NO,lmi.LMI_REF_NO,lmi.PROPOSAL_DATE,lmi.PROPOSAL_STATUS,LPG.PROGRAM_NAME
+
+
+select * from lmi_securities where aci_id = 4339749;
+
+select *
+from lmi_loan_components
+where aci_id = 4339749;
+
+SELECT *
+FROM LMI_ACCOUNT_ITEMS
+ORDER BY CREATED_DT DESC
+fetch first 10 rows only
+
+
+
+select * from dba_sequences
+
+
+select json_object( 'ACI_ID' value lmi.ACI_ID,
+                    'lmi_info' value json_object(                    
+                    'Version' value lmi.SEQ_NO,
+                    'LMI_REF_NO' value lmi.LMI_REF_NO,
+                    'PROPOSAL_DATE' value lmi.PROPOSAL_DATE,
+                    'PROPOSAL_STATUS' value lmi.PROPOSAL_STATUS,
+                    'LENDING_PROGRAM' VALUE LPG.PROGRAM_NAME),
+                    'loan_components' value json_arrayagg( json_object( 'loan_limit' value loan_limit,
+                                                                  'loan_type' value loan_type,
+                                                                  'term' value term,
+                                                                  'purpose' value purpose,
+                                                                  'repay_type' value repay_type
+                                                                 )
+                                                    ),
+                    'Securities' value json_arrayagg(  json_object( 'security_id' value sec_id,
+                                                                  'occupancy_type' value occupancy_type,
+                                                                  'security_type' value sec_type,
+                                                                  'val_program' value val_program,
+                                                                  'project_cost' value project_cost,
+                                                                  'purchase_price' value purchase_price,
+                                                                  'estimated_value' value est_value,
+                                                                  'primary_security_ind' value primary_security_ind
+                                                                 ) 
+                                                    )
+                      returning varchar2
+                     ) LMI_JSON                 
+from lmi_account_items lmi,
+     cst_lending_programs lpg,
+     lmi_securities ls,
+     lmi_loan_components llc     
+where lmi.lpg_id = lpg.lpg_id
+and lmi.aci_id = llc.aci_id
+and lmi.aci_id = ls.aci_id
+and lmi.lmi_ref_no = 82265922
+group by lmi.aci_id,lmi.SEQ_NO,lmi.LMI_REF_NO,lmi.PROPOSAL_DATE,lmi.PROPOSAL_STATUS,LPG.PROGRAM_NAME
+
+
+====================================================================================================
+
+
+CREATE TABLE proj4 (
+year varchar2(4), 
+country varchar2(20), 
+name1 varchar2(1) ,
+name2 varchar2(1) ,
+val number ,
+tot number 
+);
+
+
+INSERT INTO proj4 VALUES ('1990', 'Canada', 'A', 'a', 600, 3800000);
+INSERT INTO proj4 VALUES ('1990', 'Canada', 'A', 'b', 7700, 3800000);
+INSERT INTO proj4 VALUES ('1990', 'Canada', 'A', 'c', 11000, 3800000);
+INSERT INTO proj4 VALUES ('1990', 'Canada', 'A', 'd', 500, 3800000);
+INSERT INTO proj4 VALUES ('1990', 'Canada', 'A', 'e', 100, 3800000);
+INSERT INTO proj4 VALUES ('1990', 'Canada', 'B', 'f', 600, 3800000);
+INSERT INTO proj4 VALUES ('1990', 'Canada', 'B', 'g', 7700, 3800000);
+INSERT INTO proj4 VALUES ('1990', 'Canada', 'B', 'h', 11000, 3800000);
+INSERT INTO proj4 VALUES ('1990', 'Canada', 'B', 'i', 500, 3800000);
+INSERT INTO proj4 VALUES ('1990', 'Canada', 'C', 'j', 100, 3800000);
+INSERT INTO proj4 VALUES ('1990', 'Canada', 'C', 'k', 100, 3800000);
+INSERT INTO proj4 VALUES ('1990', 'Canada', 'C', 'l', 100, 3800000);
+INSERT INTO proj4 VALUES ('1990', 'Peru', 'A', 'a', 250, 200000);
+INSERT INTO proj4 VALUES ('1990', 'Peru', 'A', 'b', 700, 200000);
+INSERT INTO proj4 VALUES ('1990', 'Peru', 'A', 'c', 100, 200000);
+INSERT INTO proj4 VALUES ('1990', 'Peru', 'A', 'd', 20, 200000);
+INSERT INTO proj4 VALUES ('1990', 'Peru', 'A', 'e', 40, 200000);
+INSERT INTO proj4 VALUES ('1990', 'Peru', 'B', 'f', 80, 200000);
+INSERT INTO proj4 VALUES ('1990', 'Peru', 'B', 'g', 700, 200000);
+INSERT INTO proj4 VALUES ('1990', 'Peru', 'B', 'h', 1000, 200000);
+INSERT INTO proj4 VALUES ('1990', 'Peru', 'B', 'i', 50, 200000);
+INSERT INTO proj4 VALUES ('1990', 'Peru', 'C', 'j', 24, 200000);
+INSERT INTO proj4 VALUES ('1990', 'Peru', 'C', 'k', 39, 200000);
+INSERT INTO proj4 VALUES ('1990', 'Peru', 'C', 'l', 45, 200000);
+INSERT INTO proj4 VALUES ('1990', 'Romania', 'A', 'a', 400, 500000);
+INSERT INTO proj4 VALUES ('1990', 'Romania', 'A', 'b', 430, 500000);
+INSERT INTO proj4 VALUES ('1990', 'Romania', 'A', 'c', 500, 500000);
+INSERT INTO proj4 VALUES ('1990', 'Romania', 'A', 'd', 110, 500000);
+INSERT INTO proj4 VALUES ('1990', 'Romania', 'A', 'e', 58, 500000);
+INSERT INTO proj4 VALUES ('1990', 'Romania', 'B', 'f', 86, 500000);
+INSERT INTO proj4 VALUES ('1990', 'Romania', 'B', 'g', 40, 500000);
+INSERT INTO proj4 VALUES ('1990', 'Romania', 'B', 'h', 77, 500000);
+INSERT INTO proj4 VALUES ('1990', 'Romania', 'B', 'i', 5, 500000);
+INSERT INTO proj4 VALUES ('1990', 'Romania', 'C', 'j', 204, 500000);
+INSERT INTO proj4 VALUES ('1990', 'Romania', 'C', 'k', 569, 500000);
+INSERT INTO proj4 VALUES ('1990', 'Romania', 'C', 'l', 669, 500000);
+
+INSERT INTO proj4 VALUES ('2014', 'Canada', 'A', 'a', 400, 3800000);
+INSERT INTO proj4 VALUES ('2014', 'Canada', 'A', 'b', 8700, 3800000);
+INSERT INTO proj4 VALUES ('2014', 'Canada', 'A', 'c', 12300, 3800000);
+INSERT INTO proj4 VALUES ('2014', 'Canada', 'A', 'd', 250, 3800000);
+INSERT INTO proj4 VALUES ('2014', 'Canada', 'A', 'e', 80, 3800000);
+INSERT INTO proj4 VALUES ('2014', 'Canada', 'B', 'f', 460, 3800000);
+INSERT INTO proj4 VALUES ('2014', 'Canada', 'B', 'g', 5700, 3800000);
+INSERT INTO proj4 VALUES ('2014', 'Canada', 'B', 'h', 9000, 3800000);
+INSERT INTO proj4 VALUES ('2014', 'Canada', 'B', 'i', 320, 3800000);
+INSERT INTO proj4 VALUES ('2014', 'Canada', 'C', 'j', 80, 3800000);
+INSERT INTO proj4 VALUES ('2014', 'Canada', 'C', 'k', 21, 3800000);
+INSERT INTO proj4 VALUES ('2014', 'Canada', 'C', 'l', 110, 3800000);
+INSERT INTO proj4 VALUES ('2014', 'Peru', 'A', 'a', 350, 200000);
+INSERT INTO proj4 VALUES ('2014', 'Peru', 'A', 'b', 1100, 200000);
+INSERT INTO proj4 VALUES ('2014', 'Peru', 'A', 'c', 250, 200000);
+INSERT INTO proj4 VALUES ('2014', 'Peru', 'A', 'd', 86, 200000);
+INSERT INTO proj4 VALUES ('2014', 'Peru', 'A', 'e', 55, 200000);
+INSERT INTO proj4 VALUES ('2014', 'Peru', 'B', 'f', 120, 200000);
+INSERT INTO proj4 VALUES ('2014', 'Peru', 'B', 'g', 860, 200000);
+INSERT INTO proj4 VALUES ('2014', 'Peru', 'B', 'h', 1440, 200000);
+INSERT INTO proj4 VALUES ('2014', 'Peru', 'B', 'i', 46, 200000);
+INSERT INTO proj4 VALUES ('2014', 'Peru', 'C', 'j', 22, 200000);
+INSERT INTO proj4 VALUES ('2014', 'Peru', 'C', 'k', 69, 200000);
+INSERT INTO proj4 VALUES ('2014', 'Peru', 'C', 'l', 65, 200000);
+INSERT INTO proj4 VALUES ('2014', 'Romania', 'A', 'a', 500, 500000);
+INSERT INTO proj4 VALUES ('2014', 'Romania', 'A', 'b', 530, 500000);
+INSERT INTO proj4 VALUES ('2014', 'Romania', 'A', 'c', 670, 500000);
+INSERT INTO proj4 VALUES ('2014', 'Romania', 'A', 'd', 91, 500000);
+INSERT INTO proj4 VALUES ('2014', 'Romania', 'A', 'e', 48, 500000);
+INSERT INTO proj4 VALUES ('2014', 'Romania', 'B', 'f', 106, 500000);
+INSERT INTO proj4 VALUES ('2014', 'Romania', 'B', 'g', 75, 500000);
+INSERT INTO proj4 VALUES ('2014', 'Romania', 'B', 'h', 193, 500000);
+INSERT INTO proj4 VALUES ('2014', 'Romania', 'B', 'i', 11, 500000);
+INSERT INTO proj4 VALUES ('2014', 'Romania', 'C', 'j', 178, 500000);
+INSERT INTO proj4 VALUES ('2014', 'Romania', 'C', 'k', 899, 500000);
+INSERT INTO proj4 VALUES ('2014', 'Romania', 'C', 'l', 719, 500000);
+
+
+SELECT 
+	JSON_OBJECT( 
+		KEY 'dataStatus' VALUE TO_CHAR(CURRENT_DATE, 'dd.mm.yyyy') , 
+		KEY 'data' VALUE JSON_OBJECTAGG( 
+			year VALUE JSON_OBJECTAGG( 
+				KEY country VALUE json_tab 
+				RETURNING varchar2 ) 
+			RETURNING varchar2 ) 
+		RETURNING varchar2 )
+FROM
+(SELECT 
+	year ,
+	country ,
+	JSON_OBJECT( 
+		KEY 'tot' VALUE tot , 
+		KEY 'children' VALUE JSON_ARRAY( 
+			JSON_OBJECT( 
+				KEY 'name' VALUE name1, 
+				KEY 'children' VALUE JSON_ARRAYAGG( 
+					JSON_OBJECT( 
+						KEY 'name' VALUE name2, 
+						KEY 'value' VALUE val ) 
+						RETURNING varchar2 ) 
+					RETURNING varchar2 ) 
+				RETURNING varchar2 ) 
+			RETURNING varchar2 ) AS json_tab
+FROM 
+	proj4
+GROUP BY 
+	year ,
+	country ,
+	tot ,
+	name1
+)
+GROUP BY 
+	year 
+;
+
+
+{
+	"dataStatus": "07.08.2024",
+	"data": {
+		"1990": {
+			"Peru": {
+				"tot": 200000,
+				"children": [
+					{
+						"name": "A",
+						"children": [
+							{
+								"name": "a",
+								"value": 250
+							},
+							{
+								"name": "e",
+								"value": 40
+							},
+							{
+								"name": "d",
+								"value": 20
+							},
+							{
+								"name": "c",
+								"value": 100
+							},
+							{
+								"name": "b",
+								"value": 700
+							}
+						]
+					}
+				]
+			},
+			"Romania": {
+				"tot": 500000,
+				"children": [
+					{
+						"name": "C",
+						"children": [
+							{
+								"name": "j",
+								"value": 204
+							},
+							{
+								"name": "l",
+								"value": 669
+							},
+							{
+								"name": "k",
+								"value": 569
+							}
+						]
+					}
+				]
+			},
+			"Romania": {
+				"tot": 500000,
+				"children": [
+					{
+						"name": "B",
+						"children": [
+							{
+								"name": "f",
+								"value": 86
+							},
+							{
+								"name": "i",
+								"value": 5
+							},
+							{
+								"name": "h",
+								"value": 77
+							},
+							{
+								"name": "g",
+								"value": 40
+							}
+						]
+					}
+				]
+			},
+			"Romania": {
+				"tot": 500000,
+				"children": [
+					{
+						"name": "A",
+						"children": [
+							{
+								"name": "a",
+								"value": 400
+							},
+							{
+								"name": "e",
+								"value": 58
+							},
+							{
+								"name": "d",
+								"value": 110
+							},
+							{
+								"name": "c",
+								"value": 500
+							},
+							{
+								"name": "b",
+								"value": 430
+							}
+						]
+					}
+				]
+			},
+			"Canada": {
+				"tot": 3800000,
+				"children": [
+					{
+						"name": "C",
+						"children": [
+							{
+								"name": "j",
+								"value": 100
+							},
+							{
+								"name": "l",
+								"value": 100
+							},
+							{
+								"name": "k",
+								"value": 100
+							}
+						]
+					}
+				]
+			},
+			"Canada": {
+				"tot": 3800000,
+				"children": [
+					{
+						"name": "B",
+						"children": [
+							{
+								"name": "f",
+								"value": 600
+							},
+							{
+								"name": "i",
+								"value": 500
+							},
+							{
+								"name": "h",
+								"value": 11000
+							},
+							{
+								"name": "g",
+								"value": 7700
+							}
+						]
+					}
+				]
+			},
+			"Canada": {
+				"tot": 3800000,
+				"children": [
+					{
+						"name": "A",
+						"children": [
+							{
+								"name": "a",
+								"value": 600
+							},
+							{
+								"name": "e",
+								"value": 100
+							},
+							{
+								"name": "d",
+								"value": 500
+							},
+							{
+								"name": "c",
+								"value": 11000
+							},
+							{
+								"name": "b",
+								"value": 7700
+							}
+						]
+					}
+				]
+			},
+			"Peru": {
+				"tot": 200000,
+				"children": [
+					{
+						"name": "C",
+						"children": [
+							{
+								"name": "j",
+								"value": 24
+							},
+							{
+								"name": "l",
+								"value": 45
+							},
+							{
+								"name": "k",
+								"value": 39
+							}
+						]
+					}
+				]
+			},
+			"Peru": {
+				"tot": 200000,
+				"children": [
+					{
+						"name": "B",
+						"children": [
+							{
+								"name": "f",
+								"value": 80
+							},
+							{
+								"name": "i",
+								"value": 50
+							},
+							{
+								"name": "h",
+								"value": 1000
+							},
+							{
+								"name": "g",
+								"value": 700
+							}
+						]
+					}
+				]
+			}
+		},
+		"2014": {
+			"Peru": {
+				"tot": 200000,
+				"children": [
+					{
+						"name": "A",
+						"children": [
+							{
+								"name": "a",
+								"value": 350
+							},
+							{
+								"name": "e",
+								"value": 55
+							},
+							{
+								"name": "d",
+								"value": 86
+							},
+							{
+								"name": "c",
+								"value": 250
+							},
+							{
+								"name": "b",
+								"value": 1100
+							}
+						]
+					}
+				]
+			},
+			"Romania": {
+				"tot": 500000,
+				"children": [
+					{
+						"name": "C",
+						"children": [
+							{
+								"name": "j",
+								"value": 178
+							},
+							{
+								"name": "l",
+								"value": 719
+							},
+							{
+								"name": "k",
+								"value": 899
+							}
+						]
+					}
+				]
+			},
+			"Romania": {
+				"tot": 500000,
+				"children": [
+					{
+						"name": "B",
+						"children": [
+							{
+								"name": "f",
+								"value": 106
+							},
+							{
+								"name": "i",
+								"value": 11
+							},
+							{
+								"name": "h",
+								"value": 193
+							},
+							{
+								"name": "g",
+								"value": 75
+							}
+						]
+					}
+				]
+			},
+			"Romania": {
+				"tot": 500000,
+				"children": [
+					{
+						"name": "A",
+						"children": [
+							{
+								"name": "a",
+								"value": 500
+							},
+							{
+								"name": "e",
+								"value": 48
+							},
+							{
+								"name": "d",
+								"value": 91
+							},
+							{
+								"name": "c",
+								"value": 670
+							},
+							{
+								"name": "b",
+								"value": 530
+							}
+						]
+					}
+				]
+			},
+			"Canada": {
+				"tot": 3800000,
+				"children": [
+					{
+						"name": "C",
+						"children": [
+							{
+								"name": "j",
+								"value": 80
+							},
+							{
+								"name": "l",
+								"value": 110
+							},
+							{
+								"name": "k",
+								"value": 21
+							}
+						]
+					}
+				]
+			},
+			"Canada": {
+				"tot": 3800000,
+				"children": [
+					{
+						"name": "B",
+						"children": [
+							{
+								"name": "f",
+								"value": 460
+							},
+							{
+								"name": "i",
+								"value": 320
+							},
+							{
+								"name": "h",
+								"value": 9000
+							},
+							{
+								"name": "g",
+								"value": 5700
+							}
+						]
+					}
+				]
+			},
+			"Canada": {
+				"tot": 3800000,
+				"children": [
+					{
+						"name": "A",
+						"children": [
+							{
+								"name": "a",
+								"value": 400
+							},
+							{
+								"name": "e",
+								"value": 80
+							},
+							{
+								"name": "d",
+								"value": 250
+							},
+							{
+								"name": "c",
+								"value": 12300
+							},
+							{
+								"name": "b",
+								"value": 8700
+							}
+						]
+					}
+				]
+			},
+			"Peru": {
+				"tot": 200000,
+				"children": [
+					{
+						"name": "C",
+						"children": [
+							{
+								"name": "j",
+								"value": 22
+							},
+							{
+								"name": "l",
+								"value": 65
+							},
+							{
+								"name": "k",
+								"value": 69
+							}
+						]
+					}
+				]
+			},
+			"Peru": {
+				"tot": 200000,
+				"children": [
+					{
+						"name": "B",
+						"children": [
+							{
+								"name": "f",
+								"value": 120
+							},
+							{
+								"name": "i",
+								"value": 46
+							},
+							{
+								"name": "h",
+								"value": 1440
+							},
+							{
+								"name": "g",
+								"value": 860
+							}
+						]
+					}
+				]
+			}
+		}
+	}
+}
+
+with
+  year_country_name1_name2 as (
+    select year, country, name1
+         , sum(tot) tot_name1
+         , json_arrayagg(
+             json_object(
+               'name'  value name2
+             , 'value' value val
+             )
+             returning varchar2
+           ) as name2s
+    from   proj4
+    group by year, country, name1
+  )
+, year_country_name1 as (
+    select year, country, Name1
+         , json_arrayagg(
+             json_object(
+               'tot'      value tot_name1
+             , 'children' value name2s
+               returning varchar2
+             )
+             returning varchar2
+           ) name1_children
+    from year_country_name1_name2
+    group by year, country, Name1
+  )
+, year_country as (
+    select year
+         , country
+         , json_objectagg(
+             name1 value name1_children
+             returning varchar2
+           ) names
+    from   year_country_name1
+    group by year, country
+  )
+, year_ as (
+    select year
+         , json_objectagg(
+             country value names
+             returning varchar2
+           ) years_
+    from year_country
+    group by year
+  )
+select json_serialize(
+         json_object(
+           'dataStatus' value sysdate
+         , 'data'       value 
+              json_objectagg(
+                year value years_
+                returning varchar2
+              )
+           returning varchar2
+         )
+         returning varchar2 pretty
+      ) the_result
+from year_;
+
+
+{
+  "dataStatus" : "2024-08-07T15:40:07",
+  "data" :
+  {
+    "1990" :
+    {
+      "Peru" :
+      {
+        "A" :
+        [
+          {
+            "tot" : 1000000,
+            "children" :
+            [
+              {
+                "name" : "a",
+                "value" : 250
+              },
+              {
+                "name" : "e",
+                "value" : 40
+              },
+              {
+                "name" : "d",
+                "value" : 20
+              },
+              {
+                "name" : "c",
+                "value" : 100
+              },
+              {
+                "name" : "b",
+                "value" : 700
+              }
+            ]
+          }
+        ],
+        "C" :
+        [
+          {
+            "tot" : 600000,
+            "children" :
+            [
+              {
+                "name" : "j",
+                "value" : 24
+              },
+              {
+                "name" : "l",
+                "value" : 45
+              },
+              {
+                "name" : "k",
+                "value" : 39
+              }
+            ]
+          }
+        ],
+        "B" :
+        [
+          {
+            "tot" : 800000,
+            "children" :
+            [
+              {
+                "name" : "f",
+                "value" : 80
+              },
+              {
+                "name" : "i",
+                "value" : 50
+              },
+              {
+                "name" : "h",
+                "value" : 1000
+              },
+              {
+                "name" : "g",
+                "value" : 700
+              }
+            ]
+          }
+        ]
+      },
+      "Romania" :
+      {
+        "A" :
+        [
+          {
+            "tot" : 2500000,
+            "children" :
+            [
+              {
+                "name" : "a",
+                "value" : 400
+              },
+              {
+                "name" : "e",
+                "value" : 58
+              },
+              {
+                "name" : "d",
+                "value" : 110
+              },
+              {
+                "name" : "c",
+                "value" : 500
+              },
+              {
+                "name" : "b",
+                "value" : 430
+              }
+            ]
+          }
+        ],
+        "C" :
+        [
+          {
+            "tot" : 1500000,
+            "children" :
+            [
+              {
+                "name" : "j",
+                "value" : 204
+              },
+              {
+                "name" : "l",
+                "value" : 669
+              },
+              {
+                "name" : "k",
+                "value" : 569
+              }
+            ]
+          }
+        ],
+        "B" :
+        [
+          {
+            "tot" : 2000000,
+            "children" :
+            [
+              {
+                "name" : "f",
+                "value" : 86
+              },
+              {
+                "name" : "i",
+                "value" : 5
+              },
+              {
+                "name" : "h",
+                "value" : 77
+              },
+              {
+                "name" : "g",
+                "value" : 40
+              }
+            ]
+          }
+        ]
+      },
+      "Canada" :
+      {
+        "A" :
+        [
+          {
+            "tot" : 19000000,
+            "children" :
+            [
+              {
+                "name" : "a",
+                "value" : 600
+              },
+              {
+                "name" : "e",
+                "value" : 100
+              },
+              {
+                "name" : "d",
+                "value" : 500
+              },
+              {
+                "name" : "c",
+                "value" : 11000
+              },
+              {
+                "name" : "b",
+                "value" : 7700
+              }
+            ]
+          }
+        ],
+        "C" :
+        [
+          {
+            "tot" : 11400000,
+            "children" :
+            [
+              {
+                "name" : "j",
+                
+				
+SELECT JSON_OBJECT (
+         KEY 'departments' VALUE (
+           SELECT JSON_ARRAYAGG(
+                    JSON_OBJECT (
+                      KEY 'department_name' VALUE d.dname,
+                      KEY 'department_no' VALUE d.deptno,
+                      KEY 'employees' VALUE (
+                        SELECT JSON_ARRAYAGG (
+                                 JSON_OBJECT(
+                                   KEY 'employee_number' VALUE e.empno,
+                                   KEY 'employee_name' VALUE e.ename
+                                 )
+                               )
+                        FROM   emp e
+                        WHERE  e.deptno = d.deptno
+                      )
+                    )
+                  )
+           FROM   dept d
+         )
+       ) AS departments
+FROM   dual;
+
+{
+  "departments": [
+    {
+      "department_name": "ACCOUNTING",
+      "department_no": 10,
+      "employees": [
+        {
+          "employee_number": 7839,
+          "employee_name": "KING"
+        },
+        {
+          "employee_number": 7782,
+          "employee_name": "CLARK"
+        },
+        {
+          "employee_number": 7934,
+          "employee_name": "MILLER"
+        }
+      ]
+    },
+    {
+      "department_name": "RESEARCH",
+      "department_no": 20,
+      "employees": [
+        {
+          "employee_number": 7566,
+          "employee_name": "JONES"
+        },
+        {
+          "employee_number": 7788,
+          "employee_name": "SCOTT"
+        },
+        {
+          "employee_number": 7902,
+          "employee_name": "FORD"
+        },
+        {
+          "employee_number": 7369,
+          "employee_name": "SMITH"
+        },
+        {
+          "employee_number": 7876,
+          "employee_name": "ADAMS"
+        }
+      ]
+    },
+    {
+      "department_name": "SALES",
+      "department_no": 30,
+      "employees": [
+        {
+          "employee_number": 7698,
+          "employee_name": "BLAKE"
+        },
+        {
+          "employee_number": 7499,
+          "employee_name": "ALLEN"
+        },
+        {
+          "employee_number": 7521,
+          "employee_name": "WARD"
+        },
+        {
+          "employee_number": 7654,
+          "employee_name": "MARTIN"
+        },
+        {
+          "employee_number": 7844,
+          "employee_name": "TURNER"
+        },
+        {
+          "employee_number": 7900,
+          "employee_name": "JAMES"
+        }
+      ]
+    },
+    {
+      "department_name": "OPERATIONS",
+      "department_no": 40,
+      "employees": null
+    }
+  ]
+}
+
+
+
+
+{
+	"LMI_INFO": [
+		{
+			"ACI_ID": 4339749,
+			"LMI_REF_NO": 82265922,
+			"PROPOSAL_DATE": "2023-06-14T00:00:00",
+			"PROPOSAL_STATUS": "APPROVED",
+			"loan_components": [
+				{
+					"loan_limit": 75600,
+					"loan_type": "PC",
+					"term": 360,
+					"purpose": "PCH",
+					"repay_type": "PIV"
+				},
+				{
+					"loan_limit": 680400,
+					"loan_type": "PC",
+					"term": 360,
+					"purpose": "PCH",
+					"repay_type": "PIV"
+				}
+			]
+		}
+	]
+}
+
+
+select json_object
+       (
+           key 'lmi_info' value
+               ( select json_arrayagg
+                        (
+                            json_object
+                            (
+                                key 'aci_id' value lmi.aci_id,
+                                key 'lmi_ref_no' value lmi.lmi_ref_no,
+                                key 'proposal_date' value lmi.proposal_date,
+                                key 'proposal_status' value lmi.proposal_status,
+                                key 'lending_program' value cst.program_name,
+                                key 'loan_components' value
+                                    ( select json_arrayagg
+                                             (
+                                                 json_object( key 'loan_limit' value loan_limit,
+                                                              key 'loan_type' value loan_type,
+                                                              key 'term' value term,
+                                                              key 'purpose' value purpose,
+                                                              key 'repay_type' value repay_type
+                                                             )
+                                             )
+                                        from lmi_loan_components llc
+                                       where llc.aci_id = lmi.aci_id ),
+                                key 'securities' value
+                                    ( select json_arrayagg
+                                             (
+                                                 json_object
+                                                 (
+                                                     'security_id' value ls.sec_id,
+                                                     'occupancy_type' value ls.occupancy_type,
+                                                     'security_type' value ls.sec_type,
+                                                     'val_program' value ls.val_program,
+                                                     'project_cost' value ls.project_cost,
+                                                     'purchase_price' value ls.purchase_price,
+                                                     'estimated_value' value ls.est_value,
+                                                     'primary_security_ind' value ls.primary_security_ind,
+                                                     key 'address' value
+                                                         ( select json_arrayagg
+                                                                  (
+                                                                      json_object
+                                                                      (
+                                                                          key 'country' value ga.country,
+                                                                          key 'unit_no' value ga.unit_no,
+                                                                          key 'street_no' value ga.street_no,
+                                                                          key 'street_type' value ga.street_type,
+                                                                          key 'town' value ga.town,
+                                                                          key 'state' value ga.state,
+                                                                          key 'postcode' value ga.postcode
+                                                                      )
+                                                                  )
+                                                             from gen_addresses ga
+                                                            where ga.adr_id = ls.adr_id )
+                                                 )
+                                             )
+                                        from lmi_securities ls
+                                       where ls.aci_id = lmi.aci_id ),
+                                key 'lmi_transactions' value
+                                    ( select json_arrayagg
+                                             (
+                                                 json_object( key 'type' value lt.type,
+                                                              key 'sub_type' value lt.sub_type,
+                                                              key 'action' value lt.action,
+                                                              key 'amount' value lt.amount,
+                                                              key 'txn_date' value lt.created_dt
+                                                             )
+                                             )
+                                        from lmi_transactions lt
+                                       where lt.aci_id = lmi.aci_id )
+                            )
+                        )
+                   from lmi_account_items lmi,
+                        cst_lending_programs cst
+                  where lmi.lmi_ref_no = 82265922
+                    and lmi.lpg_id = cst.lpg_id )
+       )   as lmi_info
+  from dual;
+  
+  
+  
+  
+  
+  
+  select json_object
+       (
+           key 'LMI_INFO' value
+               ( select json_arrayagg
+                        (
+                            json_object
+                            (
+                                key 'ACI_ID' value lmi.aci_id,
+                                key 'LMI_REF_NO' value lmi.lmi_ref_no,
+                                key 'PROPOSAL_DATE' value lmi.proposal_date,
+                                key 'PROPOSAL_STATUS' value lmi.proposal_status,
+                                key 'LENDING_PROGRAM' value cst.program_name,
+                                key 'lvr' value lmi.lvr,
+                                key 'total_lvr' value lmi.total_lvr,
+                                key 'cust_ref' value lmi.cust_ref,
+                                key 'underwriting_type' value lmi.underwriting_type,
+                                key 'capitalised_amount' value lmi.capitalised_amount,
+                                key 'loan_amount' value lmi.total_new_loans,
+                                key 'loan_components' value
+                                    ( select json_arrayagg
+                                             (
+                                                 json_object( key 'loan_limit' value loan_limit,
+                                                              key 'loan_type' value loan_type,
+                                                              key 'term' value term,
+                                                              key 'purpose' value purpose,
+                                                              key 'repay_type' value repay_type
+                                                             )
+                                             )
+                                        from lmi_loan_components llc
+                                       where llc.aci_id = lmi.aci_id ),
+                                key 'securities' value
+                                    ( select json_arrayagg
+                                             (
+                                                 json_object
+                                                 (
+                                                     'security_id' value sec_id,
+                                                     'occupancy_type' value occupancy_type,
+                                                     'security_type' value sec_type,
+                                                     'val_program' value val_program,
+                                                     'project_cost' value project_cost,
+                                                     'purchase_price' value purchase_price,
+                                                     'estimated_value' value est_value,
+                                                     'primary_security_ind' value primary_security_ind,
+                                                     key 'Address' value
+                                                         ( select json_arrayagg
+                                                                  (
+                                                                      json_object
+                                                                      (
+                                                                          key 'country' value ga.country,
+                                                                          key 'unit_no' value ga.unit_no,
+                                                                          key 'street_no' value ga.street_no,
+                                                                          key 'street_type' value
+                                                                              ga.street_type,
+                                                                          key 'town' value ga.town,
+                                                                          key 'state' value ga.state,
+                                                                          key 'postcode' value ga.postcode
+                                                                      )
+                                                                  )
+                                                             from gen_addresses ga
+                                                            where ga.adr_id = ls.adr_id )
+                                                 )
+                                             )
+                                        from lmi_securities ls
+                                       where ls.aci_id = lmi.aci_id ),
+                                key 'lmi_transactions' value
+                                    ( select json_arrayagg
+                                             (
+                                                 json_object( key 'type' value lt.type,
+                                                              key 'sub_type' value lt.sub_type,
+                                                              key 'action' value lt.action,
+                                                              key 'amount' value lt.amount,
+                                                              key 'txn_date' value lt.created_dt
+                                                             )
+                                             )
+                                        from lmi_transactions lt
+                                       where lt.aci_id = lmi.aci_id ),
+                                key 'BorrowerInfo' value
+                                    ( select json_arrayagg
+                                             (
+                                                 json_object( key 'surname' value lind.surname,
+                                                              key 'first_name' value lind.first_name,
+                                                              key 'dob' value lind.birth_date,
+                                                              key 'gender' value lind.gender,
+                                                              key 'mobile' value lind.mobile_no, 
+                                                              key 'drivers_licence_no' value lind.drivers_licence_no,
+                                                              key 'email_address' value lind.email_address
+                                                             )
+                                             )
+                                        from  LMI_ACI_IVP_IS laii,
+                                              ips_individuals lind
+                                       where laii.aci_id = lmi.aci_id
+                                         and laii.ivp_id = lind.ivp_id
+                                         and laii.type = 'BORROWER' ),
+                                key 'GuarantorInfo' value
+                                    ( select json_arrayagg
+                                             (
+                                                 json_object( key 'type' value ic.type,
+                                                              key 'companyname' value ic.name,
+                                                              key 'country' value ic.incorporation_ctry,
+                                                              key 'abn' value ic.abn                                                              
+                                                             )
+                                             )
+                                        from  LMI_ACI_IVP_IS laii,
+                                              ips_companies ic
+                                       where laii.aci_id = lmi.aci_id
+                                         and laii.ivp_id = ic.ivp_id
+                                         and laii.type = 'GUARANTOR' ),
+                                key 'CustomerInfo' value
+                                    ( select json_arrayagg
+                                             (
+                                                 json_object( key 'type' value ic.type,
+                                                              key 'companyname' value ic.name,
+                                                              key 'country' value ic.incorporation_ctry,
+                                                              key 'abn' value ic.abn                                                              
+                                                             )
+                                             )
+                                        from  LMI_ACI_IVP_IS laii,
+                                              ips_companies ic
+                                       where laii.aci_id = lmi.aci_id
+                                         and laii.ivp_id = ic.ivp_id
+                                         and laii.type = 'CUSTOMER' ),
+                                key 'FunderInfo' value
+                                    ( select json_arrayagg
+                                             (
+                                                 json_object( key 'type' value ic.type,
+                                                              key 'companyname' value ic.name,
+                                                              key 'country' value ic.incorporation_ctry,
+                                                              key 'abn' value ic.abn                                                              
+                                                             )
+                                             )
+                                        from  LMI_ACI_IVP_IS laii,
+                                              ips_companies ic
+                                       where laii.aci_id = lmi.aci_id
+                                         and laii.ivp_id = ic.ivp_id
+                                         and laii.type = 'FUNDER' )                              
+                            )
+                        )
+                   from lmi_account_items lmi,
+                        cst_lending_programs cst
+                  where lmi.lmi_ref_no = 82265922
+                    and lmi.lpg_id = cst.lpg_id )
+       )   as lmi_info
+  from dual;
+  
+  
+  select *
+  from ips_companies;
+  
+  
+  select *
+  from ips_individuals;
+  
+  
+  select *
+  from LMI_ACI_IVP_IS
+  where aci_id = 4339749;
+  
+  
+  select * from lmi_account_items where lmi_ref_no = 82265922;
+  
+  
+  
+  select *
+  from user_tables
+  where table_name like '%LMI%'
+  
+  
+  
+  1,002,001
+    148,924
+  
+  
+  
+  
+  
+  ================================================================================
+  create or replace package pkgowner.test_pkg 
+as 
+gv_lmi_ref_no   dataowner.lmi_account_items.lmi_ref_no%type;
+function set_lmi_ref_no(v_lmi_ref_no varchar2) return number;
+function get_lmi_ref_no return number;
+end test_pkg;
+
+create or replace package body pkgowner.test_pkg as
+function set_lmi_ref_no(v_lmi_ref_no varchar2) return number
+is
+begin
+if v_lmi_ref_no is not null then
+    pkgowner.test_pkg.gv_lmi_ref_no:=v_lmi_ref_no;
+    return 1;
+else
+    return 0;
+end if;
+end set_lmi_ref_no;
+function get_lmi_ref_no return number is
+begin
+    return nvl(pkgowner.test_pkg.gv_lmi_ref_no,0);
+end get_lmi_ref_no;
+end test_pkg;
+
+
+create public synonym test_pkg for pkgowner.test_pkg;
+
+grant execute on pkgowner.test_pkg to public;
+
+
+select test_pkg.get_lmi_ref_no() from dual;
+
+create or replace view pkgowner.test_json_view as 
+select json_object
+       (
+           key 'LMI_INFO' value
+               ( select json_arrayagg
+                        (
+                            json_object
+                            (
+                                key 'ACI_ID' value lmi.aci_id,
+                                key 'LMI_REF_NO' value lmi.lmi_ref_no,
+                                key 'PROPOSAL_DATE' value lmi.proposal_date,
+                                key 'PROPOSAL_STATUS' value lmi.proposal_status,
+                                key 'LENDING_PROGRAM' value cst.program_name,
+                                key 'lvr' value lmi.lvr,
+                                key 'total_lvr' value lmi.total_lvr,
+                                key 'cust_ref' value lmi.cust_ref,
+                                key 'underwriting_type' value lmi.underwriting_type,
+                                key 'capitalised_amount' value lmi.capitalised_amount,
+                                key 'loan_amount' value lmi.total_new_loans,
+                                key 'loan_components' value
+                                    ( select json_arrayagg
+                                             (
+                                                 json_object( key 'loan_limit' value loan_limit,
+                                                              key 'loan_type' value loan_type,
+                                                              key 'term' value term,
+                                                              key 'purpose' value purpose,
+                                                              key 'repay_type' value repay_type
+                                                             )
+                                             )
+                                        from lmi_loan_components llc
+                                       where llc.aci_id = lmi.aci_id ),
+                                key 'securities' value
+                                    ( select json_arrayagg
+                                             (
+                                                 json_object
+                                                 (
+                                                     'security_id' value sec_id,
+                                                     'occupancy_type' value occupancy_type,
+                                                     'security_type' value sec_type,
+                                                     'val_program' value val_program,
+                                                     'project_cost' value project_cost,
+                                                     'purchase_price' value purchase_price,
+                                                     'estimated_value' value est_value,
+                                                     'primary_security_ind' value primary_security_ind,
+                                                     key 'Address' value
+                                                         ( select json_arrayagg
+                                                                  (
+                                                                      json_object
+                                                                      (
+                                                                          key 'country' value ga.country,
+                                                                          key 'unit_no' value ga.unit_no,
+                                                                          key 'street_no' value ga.street_no,
+                                                                          key 'street_type' value
+                                                                              ga.street_type,
+                                                                          key 'town' value ga.town,
+                                                                          key 'state' value ga.state,
+                                                                          key 'postcode' value ga.postcode
+                                                                      )
+                                                                  )
+                                                             from gen_addresses ga
+                                                            where ga.adr_id = ls.adr_id )
+                                                 )
+                                             )
+                                        from lmi_securities ls
+                                       where ls.aci_id = lmi.aci_id ),
+                                key 'lmi_transactions' value
+                                    ( select json_arrayagg
+                                             (
+                                                 json_object( key 'type' value lt.type,
+                                                              key 'sub_type' value lt.sub_type,
+                                                              key 'action' value lt.action,
+                                                              key 'amount' value lt.amount,
+                                                              key 'txn_date' value lt.created_dt
+                                                             )
+                                             )
+                                        from lmi_transactions lt
+                                       where lt.aci_id = lmi.aci_id 
+                                         and lt.action = 'RAISED'),
+                                key 'BorrowerInfo' value
+                                    ( select json_arrayagg
+                                             (
+                                                 json_object( key 'surname' value lind.surname,
+                                                              key 'first_name' value lind.first_name,
+                                                              key 'dob' value lind.birth_date,
+                                                              key 'gender' value lind.gender,
+                                                              key 'mobile' value lind.mobile_no, 
+                                                              key 'drivers_licence_no' value lind.drivers_licence_no,
+                                                              key 'email_address' value lind.email_address
+                                                             )
+                                             )
+                                        from  LMI_ACI_IVP_IS laii,
+                                              ips_individuals lind
+                                       where laii.aci_id = lmi.aci_id
+                                         and laii.ivp_id = lind.ivp_id
+                                         and laii.type = 'BORROWER' ),
+                                key 'GuarantorInfo' value
+                                    ( select json_arrayagg
+                                             (
+                                                 json_object( key 'type' value ic.type,
+                                                              key 'companyname' value ic.name,
+                                                              key 'country' value ic.incorporation_ctry,
+                                                              key 'abn' value ic.abn                                                              
+                                                             )
+                                             )
+                                        from  LMI_ACI_IVP_IS laii,
+                                              ips_companies ic
+                                       where laii.aci_id = lmi.aci_id
+                                         and laii.ivp_id = ic.ivp_id
+                                         and laii.type = 'GUARANTOR' ),
+                                key 'CustomerInfo' value
+                                    ( select json_arrayagg
+                                             (
+                                                 json_object( key 'type' value ic.type,
+                                                              key 'companyname' value ic.name,
+                                                              key 'country' value ic.incorporation_ctry,
+                                                              key 'abn' value ic.abn                                                              
+                                                             )
+                                             )
+                                        from  LMI_ACI_IVP_IS laii,
+                                              ips_companies ic
+                                       where laii.aci_id = lmi.aci_id
+                                         and laii.ivp_id = ic.ivp_id
+                                         and laii.type = 'CUSTOMER' ),
+                                key 'FunderInfo' value
+                                    ( select json_arrayagg
+                                             (
+                                                 json_object( key 'type' value ic.type,
+                                                              key 'companyname' value ic.name,
+                                                              key 'country' value ic.incorporation_ctry,
+                                                              key 'abn' value ic.abn                                                              
+                                                             )
+                                             )
+                                        from  LMI_ACI_IVP_IS laii,
+                                              ips_companies ic
+                                       where laii.aci_id = lmi.aci_id
+                                         and laii.ivp_id = ic.ivp_id
+                                         and laii.type = 'FUNDER' )                              
+                            )
+                        )
+                   from lmi_account_items lmi,
+                        cst_lending_programs cst                  
+                    where lmi.lpg_id = cst.lpg_id 
+                      and lmi_ref_no = pkgowner.test_pkg.get_lmi_ref_no() 
+                      ) returning varchar2
+       )   as policy_info
+  from dual;
+  
+  
+create public synonym test_json for pkgowner.test_json_view;
+
+grant select on test_json to public;
+
+
+select policy_info from pkgowner.test_json_view where 1 = test_pkg.set_lmi_ref_no(90342993);
+
+
+create public synonym test_pkg for pkgowner.test_pkg;
+
+
+p_xml
+
+
+select *
+from dba_source
+where upper(text) like '%PRIMARY_SECURITY_IND%'
+  
+
+
+lmi_securities

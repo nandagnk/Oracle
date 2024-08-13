@@ -1,0 +1,116 @@
+{
+	"LMI_INFO": [
+		{
+			"ACI_ID": 4339749,
+			"LMI_REF_NO": 82265922,
+			"PROPOSAL_DATE": "2023-06-14T00:00:00",
+			"PROPOSAL_STATUS": "APPROVED",
+			"LENDING_PROGRAM": "AMP BANKING FHB PROGRAM",
+			"lvr": 90,
+			"total_lvr": 92.43,
+			"cust_ref": "276120",
+			"underwriting_type": "DUA",
+			"capitalised_amount": 20393.86,
+			"loan_amount": 756000,
+			"loan_components": [
+				{
+					"loan_limit": 75600,
+					"loan_type": "PC",
+					"term": 360,
+					"purpose": "PCH",
+					"repay_type": "PIV"
+				},
+				{
+					"loan_limit": 680400,
+					"loan_type": "PC",
+					"term": 360,
+					"purpose": "PCH",
+					"repay_type": "PIV"
+				}
+			],
+			"securities": [
+				{
+					"security_id": 6155021,
+					"occupancy_type": "O",
+					"security_type": "HO",
+					"val_program": "REG",
+					"project_cost": null,
+					"purchase_price": 840000,
+					"estimated_value": null,
+					"primary_security_ind": "Y",
+					"Address": [
+						{
+							"country": "AUS",
+							"unit_no": null,
+							"street_no": "44",
+							"street_type": "ST",
+							"town": "NORTHGATE",
+							"state": "QLD",
+							"postcode": "4013"
+						}
+					]
+				}
+			],
+			"lmi_transactions": [
+				{
+					"type": "GST",
+					"sub_type": null,
+					"action": "RAISED",
+					"amount": -1814.4,
+					"txn_date": "2023-06-14T22:25:38"
+				},
+				{
+					"type": "PREMIUM",
+					"sub_type": null,
+					"action": "RAISED",
+					"amount": -18144,
+					"txn_date": "2023-06-14T22:25:38"
+				},
+				{
+					"type": "STAMP_DUTY",
+					"sub_type": "QLDF",
+					"action": "RAISED",
+					"amount": -1796.26,
+					"txn_date": "2023-06-14T22:25:38"
+				}
+			],
+			"BorrowerInfo": [
+				{
+					"surname": "LCONWF",
+					"first_name": "XKXKTTKA",
+					"dob": "1994-05-27T00:00:00",
+					"gender": "U",
+					"mobile": null,
+					"drivers_licence_no": null,
+					"email_address": null
+				},
+				{
+					"surname": "LCONWF",
+					"first_name": "GHKZVY",
+					"dob": "1989-11-05T00:00:00",
+					"gender": "U",
+					"mobile": null,
+					"drivers_licence_no": null,
+					"email_address": null
+				}
+			],
+			"GuarantorInfo": null,
+			"CustomerInfo": [
+				{
+					"type": "LTD",
+					"companyname": "AMP BANKING",
+					"country": "AUS",
+					"abn": 5570534553
+				}
+			],
+			"FunderInfo": [
+				{
+					"type": "LTD",
+					"companyname": "AMP BANKING",
+					"country": "AUS",
+					"abn": 5570534553
+				}
+			]
+		}
+	]
+}
